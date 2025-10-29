@@ -84,101 +84,118 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def generate_demo_prediction():
-    """Generate realistic demo prediction with enhanced details based on actual SENSEX behavior at 84k levels"""
+    """Generate prediction scenarios based on 6-month SENSEX outlook: 82k-90k consolidation"""
     scenarios = [
         {
             "direction": "UP", 
-            "probability": 0.73, 
+            "probability": 0.75, 
             "confidence": "High", 
-            "confidence_score": 0.46,
-            "predicted_change": "+1.15%",  # Realistic SENSEX daily gain at 84k levels
+            "confidence_score": 0.48,
+            "predicted_change": "+1.20%",  # Within 82k-90k range dynamics
             "risk_level": "Moderate",
-            "technical_signals": ["RSI Oversold Recovery", "MACD Bullish Crossover", "Volume Breakout"]
+            "technical_signals": ["DII Support at 82.5k", "Bounce from Primary Support", "Volume Surge"],
+            "key_levels": "Next Resistance: 86,000"
         },
         {
             "direction": "DOWN", 
-            "probability": 0.64, 
+            "probability": 0.65, 
             "confidence": "Medium", 
-            "confidence_score": 0.28,
-            "predicted_change": "-0.85%",  # Realistic SENSEX daily decline
+            "confidence_score": 0.30,
+            "predicted_change": "-0.90%",  # Profit booking scenario
             "risk_level": "Moderate",
-            "technical_signals": ["Resistance at 85000", "Bearish Divergence", "FII Selling"]
+            "technical_signals": ["Resistance at 86k", "FII Selling Pressure", "Overbought RSI"],
+            "key_levels": "Support Zone: 83,200-82,500"
         },
         {
             "direction": "UP", 
-            "probability": 0.68, 
+            "probability": 0.70, 
             "confidence": "High", 
-            "confidence_score": 0.36,
-            "predicted_change": "+1.42%",  # Strong positive day
+            "confidence_score": 0.38,
+            "predicted_change": "+1.55%",  # Strong breakout attempt
             "risk_level": "Low",
-            "technical_signals": ["Support at 83500", "Banking Sector Strength", "Global Cues Positive"]
+            "technical_signals": ["Break Above 86k", "Banking Strength", "Global Risk-On"],
+            "key_levels": "Target: 88,000 (6-month high)"
         },
         {
             "direction": "DOWN", 
-            "probability": 0.59, 
+            "probability": 0.60, 
             "confidence": "Medium", 
-            "confidence_score": 0.18,
-            "predicted_change": "-0.67%",  # Moderate decline
+            "confidence_score": 0.22,
+            "predicted_change": "-1.10%",  # Support test scenario
             "risk_level": "High",
-            "technical_signals": ["Profit Booking at Highs", "High Volatility Index", "Weak Auto Sector"]
+            "technical_signals": ["Test of 82.5k Support", "Weak F&O Activity", "Risk-Off Sentiment"],
+            "key_levels": "Critical Support: 80,500"
         },
         {
             "direction": "UP", 
-            "probability": 0.71, 
+            "probability": 0.72, 
             "confidence": "High", 
-            "confidence_score": 0.42,
-            "predicted_change": "+0.98%",  # Steady upward move
+            "confidence_score": 0.44,
+            "predicted_change": "+1.05%",  # Consolidation bounce
             "risk_level": "Low",
-            "technical_signals": ["20-Day MA Support at 83000", "IT Sector Outperformance", "DII Inflows"]
+            "technical_signals": ["Mean Reversion Play", "Cash Turnover ₹7k+ Cr", "Sector Rotation"],
+            "key_levels": "Range: 84k-86k Consolidation"
         },
         {
             "direction": "DOWN",
-            "probability": 0.62,
+            "probability": 0.63,
             "confidence": "Medium",
-            "confidence_score": 0.24,
-            "predicted_change": "-1.23%",  # Significant decline
+            "confidence_score": 0.26,
+            "predicted_change": "-1.35%",  # Range breakdown risk
             "risk_level": "High",
-            "technical_signals": ["Break Below 84000", "Energy Sector Weakness", "Global Market Concerns"]
+            "technical_signals": ["Below 82k Range", "High Volatility Alert", "FII Exodus Risk"],
+            "key_levels": "Danger Zone: Sub-80,500"
         },
         {
             "direction": "UP",
-            "probability": 0.69,
+            "probability": 0.74,
             "confidence": "High",
-            "confidence_score": 0.38,
-            "predicted_change": "+1.67%",  # Strong rally day
+            "confidence_score": 0.42,
+            "predicted_change": "+1.80%",  # Momentum breakout
             "risk_level": "Low",
-            "technical_signals": ["Breakout Above 84500", "Pharma Sector Rally", "Positive Earnings"]
+            "technical_signals": ["88k Breakout", "All-Time-High Test", "Bull Market Resume"],
+            "key_levels": "Next Target: 90,000 (6-month ceiling)"
         }
     ]
     st.session_state.prediction_count += 1
-    return random.choice(scenarios)
+    selected_scenario = random.choice(scenarios)
+    # Add 6-month context
+    selected_scenario["market_outlook"] = "Consolidation Phase: 82k-90k Range"
+    selected_scenario["volatility_range"] = "±300-700 points daily"
+    return selected_scenario
 
 def generate_market_data():
-    """Generate realistic SENSEX market data based on current levels"""
+    """Generate realistic SENSEX market data based on 6-month outlook (82k-90k range)"""
     # Generate last 30 days of SENSEX data
     dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-    # Current SENSEX levels around 84,000 (October 2025)
-    base_price = 84000
+    # Current SENSEX in consolidation range 82,000-86,000
+    base_price = 84250
     
     prices = []
     current_price = base_price
     
     for i in range(30):
-        # More realistic daily volatility for SENSEX (0.5% to 2%)
-        change = np.random.normal(0.0005, 0.015)  # Slight positive bias with realistic volatility
-        current_price *= (1 + change)
-        # Keep prices in realistic range for current levels
-        current_price = max(82000, min(86000, current_price))
+        # Daily volatility: ±300-700 points (±0.35-0.85% at 84k levels)
+        daily_change_points = np.random.normal(0, 400)  # Centered around 0 with 400 point std dev
+        daily_change_points = max(-700, min(700, daily_change_points))  # Cap at ±700 points
+        current_price = current_price + daily_change_points
+        
+        # Keep within 6-month expected range with support/resistance levels
+        current_price = max(82000, min(90000, current_price))  # Broad 6-month range
+        if current_price < 82500:  # Primary support level
+            current_price += random.uniform(50, 200)  # DII buying support
+        if current_price > 86000:  # Primary resistance
+            current_price -= random.uniform(100, 300)  # Profit booking
+            
         prices.append(current_price)
     
-    # Generate realistic volume data for SENSEX (in crores)
+    # Generate realistic cash market turnover data
     volumes = []
     for i in range(30):
-        # SENSEX volume typically 400-900 crores at current levels
-        base_volume = 60000000000  # 600 crores in actual numbers
-        volume_change = np.random.normal(0, 0.3)
-        volume = int(base_volume * (1 + volume_change))
-        volume = max(30000000000, min(90000000000, volume))
+        # Cash market turnover: ₹6,500-9,000 crores average
+        base_turnover_crores = random.uniform(6500, 9000)
+        # Convert crores to actual numbers for volume representation
+        volume = int(base_turnover_crores * 10000000)  # Approximate volume calculation
         volumes.append(volume)
     
     df = pd.DataFrame({
@@ -235,21 +252,34 @@ def create_volume_chart(df):
     return fig
 
 def create_sensex_trend_chart():
-    """Create SENSEX trend chart with moving averages based on realistic data"""
+    """Create SENSEX trend chart based on 6-month outlook and key levels"""
     # Generate extended data for trend analysis
     dates = pd.date_range(end=datetime.now(), periods=90, freq='D')
-    # Start from realistic historical SENSEX level (3 months ago) - gradual rise to 84k
-    base_price = 79500
+    # Start from 3 months ago in the consolidation range
+    base_price = 82800
     
     prices = []
     current_price = base_price
     
     for i in range(90):
-        # Realistic SENSEX daily movement with upward trend to reach 84k
-        change = np.random.normal(0.0015, 0.012)  # Slight upward trend over 3 months
-        current_price *= (1 + change)
-        # Keep within realistic bounds for 84k levels
-        current_price = max(78000, min(86000, current_price))
+        # Generate realistic price movement within 82k-90k range
+        daily_change_points = np.random.normal(50, 350)  # Slight upward bias with volatility
+        daily_change_points = max(-700, min(700, daily_change_points))  # ±300-700 points range
+        
+        current_price = current_price + daily_change_points
+        
+        # Apply support and resistance levels
+        if current_price < 82500:  # Primary support - DII buying
+            current_price += random.uniform(100, 300)
+        elif current_price < 80500:  # Structural support - major bounce
+            current_price += random.uniform(500, 800)
+        elif current_price > 86000:  # Primary resistance - profit booking
+            current_price -= random.uniform(200, 500)
+        elif current_price > 88000:  # Secondary resistance
+            current_price -= random.uniform(300, 600)
+            
+        # Keep within broad expected range
+        current_price = max(80000, min(90000, current_price))
         prices.append(current_price)
     
     df = pd.DataFrame({
@@ -262,6 +292,12 @@ def create_sensex_trend_chart():
     df['MA50'] = df['Close'].rolling(window=50).mean()
     
     fig = go.Figure()
+    
+    # Add support and resistance zones
+    fig.add_hrect(y0=82500, y1=83200, fillcolor="green", opacity=0.1, 
+                  annotation_text="Primary Support Zone", annotation_position="top left")
+    fig.add_hrect(y0=86000, y1=88000, fillcolor="red", opacity=0.1,
+                  annotation_text="Resistance Zone", annotation_position="top left")
     
     # Price line
     fig.add_trace(go.Scatter(
@@ -293,39 +329,63 @@ def create_sensex_trend_chart():
     ))
     
     fig.update_layout(
-        title='SENSEX Trend Analysis (Last 90 Days)',
+        title='SENSEX Trend Analysis - 6M Outlook (82k-90k Range)',
         xaxis_title='Date',
         yaxis_title='Price (₹)',
         hovermode='x unified',
         height=450,
         legend=dict(x=0, y=1),
         yaxis=dict(
-            range=[78000, 86000]  # Set realistic Y-axis range for 84k levels
+            range=[80000, 90000]  # 6-month expected range
         )
     )
     
     return fig
 
 def get_market_summary():
-    """Generate realistic market summary data based on current SENSEX levels"""
-    # Current SENSEX level (as of October 2025) - around 84,000
-    base_price = 84125.67
-    daily_change = random.uniform(-600, 600)  # Realistic daily change range for 84k levels
+    """Generate realistic market summary based on 6-month outlook and key levels"""
+    # Current SENSEX in consolidation phase within 82k-90k range
+    base_price = 84280.45
+    # Daily volatility: ±300-700 points as per 6-month outlook
+    daily_change = random.uniform(-700, 700)
     current_price = base_price + daily_change
+    
+    # Apply support/resistance dynamics
+    if current_price < 82500:  # Below primary support
+        current_price = random.uniform(82500, 83200)  # DII buying support
+    elif current_price > 86000:  # Above primary resistance  
+        current_price = random.uniform(85500, 86000)  # Profit booking pressure
+        
     change_percent = (daily_change / base_price) * 100
+    
+    # Cash market turnover: ₹6,500-9,000 crores
+    turnover_crores = random.uniform(6500, 9000)
     
     return {
         'sensex': {
             'current_price': current_price,
-            'change': daily_change,
-            'change_percent': change_percent,
-            'volume': random.randint(50000000000, 90000000000)  # Volume in actual numbers (500-900 crores)
+            'change': current_price - base_price,
+            'change_percent': ((current_price - base_price) / base_price) * 100,
+            'turnover_crores': turnover_crores,
+            'volume': int(turnover_crores * 10000000),  # Approximate volume calculation
+            'support_levels': [82500, 83200, 80500],
+            'resistance_levels': [86000, 88000, 90000]
         },
         'market_breadth': {
             'advancing': random.randint(15, 23),  # Out of 30 SENSEX stocks
             'declining': random.randint(7, 15),
             'unchanged': random.randint(0, 2)
         },
+        'fno_activity': {
+            'daily_turnover_lakh_crores': round(random.uniform(2.2, 3.0), 1),  # ₹2.2-3.0 lakh crores
+            'description': "FII positioning remains swing factor"
+        },
+        'risk_factors': [
+            'Fed rate policy stance',
+            'Crude oil above $95',
+            'INR depreciation pressure', 
+            'India Budget 2026 signals'
+        ],
         'sectors': [
             {'name': 'Banking', 'change': random.uniform(-1.5, 1.8)},
             {'name': 'IT', 'change': random.uniform(-1.2, 2.1)},
@@ -464,6 +524,18 @@ def main():
             for signal in prediction['technical_signals']:
                 st.markdown(f"• {signal}")
             
+            # Display key levels if available
+            if 'key_levels' in prediction:
+                st.markdown("**Key Levels:**")
+                st.markdown(f"📍 {prediction['key_levels']}")
+            
+            # Display market outlook context
+            if 'market_outlook' in prediction:
+                st.markdown("**Market Context:**")
+                st.markdown(f"🎯 {prediction['market_outlook']}")
+                if 'volatility_range' in prediction:
+                    st.markdown(f"📊 Expected Volatility: {prediction['volatility_range']}")
+            
             st.markdown(f"**Confidence Score:** {prediction['confidence_score']:.2f}")
             st.progress(prediction['confidence_score'])
         
@@ -506,11 +578,27 @@ def main():
             f"vs {breadth['declining']} declining"
         )
         
-        st.metric(
-            "Volume",
-            f"{sensex_info['volume']:,.0f}",
-            help="Total trading volume"
-        )
+        # Cash market turnover
+        if 'turnover_crores' in sensex_info:
+            st.metric(
+                "Cash Turnover",
+                f"₹{sensex_info['turnover_crores']:,.0f} Cr",
+                help="Daily cash market turnover"
+            )
+        else:
+            st.metric(
+                "Volume",
+                f"{sensex_info['volume']:,.0f}",
+                help="Total trading volume"
+            )
+        
+        # Support and resistance levels
+        if 'support_levels' in sensex_info and 'resistance_levels' in sensex_info:
+            st.markdown("**Key Levels:**")
+            support_str = " | ".join([f"{s:,.0f}" for s in sensex_info['support_levels'][:2]])
+            resist_str = " | ".join([f"{r:,.0f}" for r in sensex_info['resistance_levels'][:2]])
+            st.markdown(f"🔻 **Support:** {support_str}")
+            st.markdown(f"🔺 **Resistance:** {resist_str}")
         
         # Last updated
         st.caption(f"Updated: {market_summary['timestamp'][:19]}")
@@ -529,6 +617,29 @@ def main():
                 sector['name'],
                 f"{change_color}{sector['change']:+.1f}%"
             )
+    
+    # Market Intelligence section
+    if 'fno_activity' in market_summary or 'risk_factors' in market_summary:
+        st.markdown("### 🎯 Market Intelligence")
+        
+        intel_col1, intel_col2 = st.columns(2)
+        
+        with intel_col1:
+            if 'fno_activity' in market_summary:
+                fno = market_summary['fno_activity']
+                st.markdown("**F&O Activity**")
+                st.metric(
+                    "Daily F&O Turnover",
+                    f"₹{fno['daily_turnover_lakh_crores']} L Cr",
+                    help="Futures & Options turnover"
+                )
+                st.caption(fno.get('description', ''))
+        
+        with intel_col2:
+            if 'risk_factors' in market_summary:
+                st.markdown("**Key Risk Factors**")
+                for risk in market_summary['risk_factors']:
+                    st.markdown(f"⚠️ {risk}")
     
     # Technical Architecture section
     st.markdown("## 🏗️ Technical Architecture")
