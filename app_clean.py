@@ -84,76 +84,98 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def generate_demo_prediction():
-    """Generate realistic demo prediction with enhanced details"""
+    """Generate realistic demo prediction with enhanced details based on actual SENSEX behavior"""
     scenarios = [
         {
             "direction": "UP", 
             "probability": 0.73, 
             "confidence": "High", 
             "confidence_score": 0.46,
-            "predicted_change": "+1.85%",
+            "predicted_change": "+1.15%",  # Realistic SENSEX daily gain
             "risk_level": "Moderate",
-            "technical_signals": ["RSI Oversold", "MACD Bullish", "Volume Surge"]
+            "technical_signals": ["RSI Oversold Recovery", "MACD Bullish Crossover", "Volume Breakout"]
         },
         {
             "direction": "DOWN", 
             "probability": 0.64, 
             "confidence": "Medium", 
             "confidence_score": 0.28,
-            "predicted_change": "-1.12%",
+            "predicted_change": "-0.85%",  # Realistic SENSEX daily decline
             "risk_level": "Moderate",
-            "technical_signals": ["Resistance Rejection", "Bearish Divergence", "High VIX"]
+            "technical_signals": ["Resistance at 67000", "Bearish Divergence", "FII Selling"]
         },
         {
             "direction": "UP", 
             "probability": 0.68, 
             "confidence": "High", 
             "confidence_score": 0.36,
-            "predicted_change": "+2.14%",
+            "predicted_change": "+1.42%",  # Strong positive day
             "risk_level": "Low",
-            "technical_signals": ["Breakout Pattern", "Strong Support", "FII Buying"]
+            "technical_signals": ["Support at 66500", "Banking Sector Strength", "Global Cues Positive"]
         },
         {
             "direction": "DOWN", 
             "probability": 0.59, 
             "confidence": "Medium", 
             "confidence_score": 0.18,
-            "predicted_change": "-0.89%",
+            "predicted_change": "-0.67%",  # Moderate decline
             "risk_level": "High",
-            "technical_signals": ["Weak Global Cues", "Profit Booking", "High Volatility"]
+            "technical_signals": ["Profit Booking", "High Volatility Index", "Weak Auto Sector"]
         },
         {
             "direction": "UP", 
             "probability": 0.71, 
             "confidence": "High", 
             "confidence_score": 0.42,
-            "predicted_change": "+1.67%",
+            "predicted_change": "+0.98%",  # Steady upward move
             "risk_level": "Low",
-            "technical_signals": ["Golden Cross", "Momentum Pickup", "Sector Rotation"]
+            "technical_signals": ["20-Day MA Support", "IT Sector Outperformance", "DII Inflows"]
+        },
+        {
+            "direction": "DOWN",
+            "probability": 0.62,
+            "confidence": "Medium",
+            "confidence_score": 0.24,
+            "predicted_change": "-1.23%",  # Significant decline
+            "risk_level": "High",
+            "technical_signals": ["Break Below 66000", "Energy Sector Weakness", "US Market Concerns"]
         }
     ]
     st.session_state.prediction_count += 1
     return random.choice(scenarios)
 
 def generate_market_data():
-    """Generate demo market data"""
+    """Generate realistic SENSEX market data based on current levels"""
     # Generate last 30 days of SENSEX data
     dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-    base_price = 65000
+    # Current SENSEX levels around 66,000-67,000
+    base_price = 66500
     
     prices = []
     current_price = base_price
     
     for i in range(30):
-        # Random walk with slight upward bias
-        change = np.random.normal(0.001, 0.02)
+        # More realistic daily volatility for SENSEX (0.5% to 2%)
+        change = np.random.normal(0.0005, 0.015)  # Slight positive bias with realistic volatility
         current_price *= (1 + change)
+        # Keep prices in realistic range
+        current_price = max(64000, min(68000, current_price))
         prices.append(current_price)
+    
+    # Generate realistic volume data for SENSEX (in crores)
+    volumes = []
+    for i in range(30):
+        # SENSEX volume typically 300-800 crores
+        base_volume = 50000000000  # 500 crores in actual numbers
+        volume_change = np.random.normal(0, 0.3)
+        volume = int(base_volume * (1 + volume_change))
+        volume = max(20000000000, min(80000000000, volume))
+        volumes.append(volume)
     
     df = pd.DataFrame({
         'Date': dates,
         'Close': prices,
-        'Volume': np.random.randint(100000000, 500000000, 30)
+        'Volume': volumes
     })
     
     return df
@@ -204,17 +226,21 @@ def create_volume_chart(df):
     return fig
 
 def create_sensex_trend_chart():
-    """Create SENSEX trend chart with moving averages"""
+    """Create SENSEX trend chart with moving averages based on realistic data"""
     # Generate extended data for trend analysis
     dates = pd.date_range(end=datetime.now(), periods=90, freq='D')
-    base_price = 65000
+    # Start from realistic historical SENSEX level (3 months ago)
+    base_price = 65200
     
     prices = []
     current_price = base_price
     
     for i in range(90):
-        change = np.random.normal(0.001, 0.02)
+        # Realistic SENSEX daily movement (typically 0.1% to 1.5%)
+        change = np.random.normal(0.0008, 0.012)  # Slight upward trend over 3 months
         current_price *= (1 + change)
+        # Keep within realistic bounds
+        current_price = max(62000, min(68500, current_price))
         prices.append(current_price)
     
     df = pd.DataFrame({
@@ -263,31 +289,43 @@ def create_sensex_trend_chart():
         yaxis_title='Price (₹)',
         hovermode='x unified',
         height=450,
-        legend=dict(x=0, y=1)
+        legend=dict(x=0, y=1),
+        yaxis=dict(
+            range=[62000, 68500]  # Set realistic Y-axis range
+        )
     )
     
     return fig
 
 def get_market_summary():
-    """Generate market summary data"""
+    """Generate realistic market summary data based on current SENSEX levels"""
+    # Current SENSEX level (as of late October 2024)
+    base_price = 66750.24
+    daily_change = random.uniform(-400, 400)  # Realistic daily change range
+    current_price = base_price + daily_change
+    change_percent = (daily_change / base_price) * 100
+    
     return {
         'sensex': {
-            'current_price': 65420.50 + random.uniform(-500, 500),
-            'change': random.uniform(-300, 300),
-            'change_percent': random.uniform(-1.5, 1.5),
-            'volume': random.randint(300000000, 600000000)
+            'current_price': current_price,
+            'change': daily_change,
+            'change_percent': change_percent,
+            'volume': random.randint(40000000000, 70000000000)  # Volume in actual numbers (400-700 crores)
         },
         'market_breadth': {
-            'advancing': random.randint(12, 25),
-            'declining': random.randint(5, 18),
-            'unchanged': random.randint(0, 3)
+            'advancing': random.randint(15, 23),  # Out of 30 SENSEX stocks
+            'declining': random.randint(7, 15),
+            'unchanged': random.randint(0, 2)
         },
         'sectors': [
-            {'name': 'Banking', 'change': random.uniform(-2, 2)},
-            {'name': 'IT', 'change': random.uniform(-2, 2)},
-            {'name': 'Pharma', 'change': random.uniform(-2, 2)},
-            {'name': 'Auto', 'change': random.uniform(-2, 2)},
-            {'name': 'FMCG', 'change': random.uniform(-2, 2)}
+            {'name': 'Banking', 'change': random.uniform(-1.5, 1.8)},
+            {'name': 'IT', 'change': random.uniform(-1.2, 2.1)},
+            {'name': 'Pharma', 'change': random.uniform(-0.8, 1.5)},
+            {'name': 'Auto', 'change': random.uniform(-1.8, 1.6)},
+            {'name': 'FMCG', 'change': random.uniform(-0.6, 1.2)},
+            {'name': 'Energy', 'change': random.uniform(-1.4, 1.9)},
+            {'name': 'Metals', 'change': random.uniform(-2.1, 2.3)},
+            {'name': 'Realty', 'change': random.uniform(-1.7, 2.0)}
         ],
         'timestamp': datetime.now().isoformat()
     }
