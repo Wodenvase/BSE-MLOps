@@ -236,9 +236,6 @@ def main():
         ### 🔗 Links
         - **GitHub Repository**: [BSE-MLOps](https://github.com/Wodenvase/BSE-MLOps)
         - **Documentation**: Available in the repository
-        
-        ---
-        **Built with ❤️ using Streamlit, TensorFlow, and MLflow**
         """)
 
 if __name__ == "__main__":
