@@ -1,0 +1,32 @@
+# DVC pipeline configuration
+stages:
+  fetch_data:
+    cmd: python src/data/fetch_data.py
+    deps:
+      - src/data/fetch_data.py
+      - configs/config.py
+    outs:
+      - data/raw/
+
+  create_features:
+    cmd: python src/data/create_feature_maps.py
+    deps:
+      - src/data/create_feature_maps.py
+      - data/raw/
+    outs:
+      - data/processed/feature_maps.npy
+      - data/processed/targets.npy
+      - data/processed/dates.csv
+      - data/processed/feature_names.csv
+      - data/processed/stock_names.csv
+
+  train_model:
+    cmd: python src/models/convlstm_model.py
+    deps:
+      - src/models/convlstm_model.py
+      - data/processed/feature_maps.npy
+      - data/processed/targets.npy
+    outs:
+      - models/convlstm_sensex_final.h5
+    metrics:
+      - metrics.json

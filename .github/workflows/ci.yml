@@ -1,0 +1,360 @@
+# CI/CD Pipeline for SENSEX MLOps Project
+# Automated testing, linting, and deployment workflow
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.9'
+  
+jobs:
+  # Job 1: Code Quality and Linting
+  lint-and-quality:
+    runs-on: ubuntu-latest
+    name: 🔍 Code Quality & Linting
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📦 Cache Dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: 🔧 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy bandit safety
+        pip install -r requirements.txt
+        pip install -r streamlit_app/requirements.txt
+        
+    - name: 🎨 Check Code Formatting (Black)
+      run: |
+        echo "::group::Black Formatting Check"
+        black --check --diff src/ streamlit_app/ scripts/ || true
+        echo "::endgroup::"
+        
+    - name: 📝 Check Import Sorting (isort) 
+      run: |
+        echo "::group::Import Sorting Check"
+        isort --check-only --diff src/ streamlit_app/ scripts/ || true
+        echo "::endgroup::"
+        
+    - name: 🔍 Lint with Flake8
+      run: |
+        echo "::group::Flake8 Linting"
+        flake8 src/ streamlit_app/ scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ streamlit_app/ scripts/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        echo "::endgroup::"
+        
+    - name: 🔒 Security Check (Bandit)
+      run: |
+        echo "::group::Security Analysis"
+        bandit -r src/ streamlit_app/ scripts/ -f json -o bandit-report.json || true
+        bandit -r src/ streamlit_app/ scripts/ || true
+        echo "::endgroup::"
+        
+    - name: 🛡️ Dependency Security Check (Safety)
+      run: |
+        echo "::group::Dependency Security Check"
+        safety check --json --output safety-report.json || true
+        safety check || true
+        echo "::endgroup::"
+        
+    - name: 📊 Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+        retention-days: 30
+
+  # Job 2: Unit Tests
+  test:
+    runs-on: ubuntu-latest
+    name: 🧪 Unit Tests
+    needs: lint-and-quality
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10']
+        
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 📦 Cache Dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-pip-
+          
+    - name: 🔧 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-xdist pytest-mock
+        pip install -r requirements.txt
+        pip install -r streamlit_app/requirements.txt
+        
+    - name: 🧪 Run Unit Tests
+      run: |
+        echo "::group::Unit Tests"
+        pytest tests/ -v --cov=src --cov=streamlit_app \
+          --cov-report=xml --cov-report=html --cov-report=term \
+          --junit-xml=pytest-report.xml \
+          -n auto
+        echo "::endgroup::"
+        
+    - name: 📊 Upload Coverage Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-reports-${{ matrix.python-version }}
+        path: |
+          coverage.xml
+          htmlcov/
+          pytest-report.xml
+        retention-days: 30
+        
+    - name: 📈 Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.9'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  # Job 3: Integration Tests
+  integration-test:
+    runs-on: ubuntu-latest
+    name: 🔗 Integration Tests
+    needs: test
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 🔧 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r streamlit_app/requirements.txt
+        pip install pytest
+        
+    - name: 🔗 Test Data Pipeline Integration
+      run: |
+        echo "::group::Data Pipeline Tests"
+        python -m pytest tests/integration/ -v -k "data" || true
+        echo "::endgroup::"
+        
+    - name: 🧠 Test Model Serving Integration
+      run: |
+        echo "::group::Model Serving Tests"
+        python -m pytest tests/integration/ -v -k "serving" || true
+        echo "::endgroup::"
+        
+    - name: 🌐 Test Streamlit App
+      run: |
+        echo "::group::Streamlit App Test"
+        cd streamlit_app
+        python -c "
+        import streamlit as st
+        import app_deployment
+        print('✅ Streamlit app imports successfully')
+        "
+        echo "::endgroup::"
+
+  # Job 4: Docker Build Test
+  docker-test:
+    runs-on: ubuntu-latest
+    name: 🐳 Docker Build Test
+    needs: test
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🔨 Build Docker Image
+      run: |
+        echo "::group::Docker Build"
+        docker build -f Dockerfile.streamlit -t sensex-app:test .
+        echo "::endgroup::"
+        
+    - name: 🧪 Test Docker Container
+      run: |
+        echo "::group::Container Test"
+        docker run --rm -d --name test-container -p 7860:7860 sensex-app:test
+        sleep 10
+        
+        # Test if container is healthy
+        if docker ps | grep -q test-container; then
+          echo "✅ Container is running"
+        else
+          echo "❌ Container failed to start"
+          docker logs test-container
+          exit 1
+        fi
+        
+        # Stop container
+        docker stop test-container || true
+        echo "::endgroup::"
+        
+    - name: 🏷️ Tag Image for Registry
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'  
+      run: |
+        docker tag sensex-app:test sensex-app:latest
+        docker tag sensex-app:test sensex-app:${{ github.sha }}
+
+  # Job 5: Performance & Load Tests
+  performance-test:
+    runs-on: ubuntu-latest
+    name: ⚡ Performance Tests
+    needs: [test, docker-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 🔧 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-benchmark memory-profiler
+        
+    - name: ⚡ Run Performance Tests
+      run: |
+        echo "::group::Performance Benchmarks"
+        python -m pytest tests/performance/ -v --benchmark-only || true
+        echo "::endgroup::"
+        
+    - name: 💾 Memory Profile Tests
+      run: |
+        echo "::group::Memory Profiling"
+        python -m pytest tests/performance/ -v -k "memory" || true
+        echo "::endgroup::"
+
+  # Job 6: Documentation Check
+  docs-check:
+    runs-on: ubuntu-latest
+    name: 📚 Documentation Check
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 📚 Check Documentation
+      run: |
+        echo "::group::Documentation Check"
+        
+        # Check if README files exist
+        for readme in README.md README_PHASE1.md README_PHASE2.md README_PHASE3.md; do
+          if [ -f "$readme" ]; then
+            echo "✅ $readme exists"
+          else
+            echo "❌ $readme missing"
+          fi
+        done
+        
+        # Check for inline documentation
+        echo "Checking Python docstrings..."
+        python -c "
+        import ast
+        import os
+        
+        def check_docstrings(filepath):
+            with open(filepath, 'r') as f:
+                try:
+                    tree = ast.parse(f.read())
+                    functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+                    classes = [node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+                    
+                    total = len(functions) + len(classes)
+                    documented = 0
+                    
+                    for node in functions + classes:
+                        if ast.get_docstring(node):
+                            documented += 1
+                    
+                    if total > 0:
+                        coverage = (documented / total) * 100
+                        print(f'{filepath}: {coverage:.1f}% documented ({documented}/{total})')
+                    
+                except Exception as e:
+                    print(f'Error parsing {filepath}: {e}')
+        
+        # Check main source files
+        for root, dirs, files in os.walk('src'):
+            for file in files:
+                if file.endswith('.py'):
+                    check_docstrings(os.path.join(root, file))
+        "
+        
+        echo "::endgroup::"
+
+  # Job 7: Notification
+  notify:
+    runs-on: ubuntu-latest
+    name: 📢 Notify Results  
+    needs: [lint-and-quality, test, integration-test, docker-test, docs-check]
+    if: always()
+    
+    steps:
+    - name: 📊 Collect Results
+      run: |
+        echo "::group::CI/CD Results Summary"
+        echo "Lint & Quality: ${{ needs.lint-and-quality.result }}"
+        echo "Unit Tests: ${{ needs.test.result }}"
+        echo "Integration Tests: ${{ needs.integration-test.result }}"
+        echo "Docker Build: ${{ needs.docker-test.result }}"
+        echo "Documentation: ${{ needs.docs-check.result }}"
+        echo "::endgroup::"
+        
+    - name: ✅ Success Notification
+      if: ${{ needs.lint-and-quality.result == 'success' && needs.test.result == 'success' && needs.docker-test.result == 'success' }}
+      run: |
+        echo "🎉 All CI/CD checks passed! Ready for deployment."
+        
+    - name: ❌ Failure Notification  
+      if: ${{ needs.lint-and-quality.result == 'failure' || needs.test.result == 'failure' || needs.docker-test.result == 'failure' }}
+      run: |
+        echo "❌ Some CI/CD checks failed. Please review the logs."
+        exit 1

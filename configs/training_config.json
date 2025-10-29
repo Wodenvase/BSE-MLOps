@@ -1,0 +1,39 @@
+{
+  "experiment_name": "sensex-convlstm-phase2",
+  "mlflow_uri": "http://mlflow:5000",
+  "model_params": {
+    "sequence_length": 30,
+    "n_stocks": 30,
+    "n_features": 40,
+    "conv_lstm_filters": [64, 32, 16],
+    "conv_lstm_kernel_size": [3, 3],
+    "conv_lstm_dropout": 0.2,
+    "conv_lstm_recurrent_dropout": 0.2,
+    "dense_units": [128, 64, 32],
+    "dense_dropout": 0.3,
+    "l1_reg": 0.001,
+    "l2_reg": 0.001,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "epochs": 100,
+    "patience": 15,
+    "output_activation": "sigmoid"
+  },
+  "data_split": {
+    "train_ratio": 0.7,
+    "val_ratio": 0.2,
+    "test_ratio": 0.1
+  },
+  "training": {
+    "early_stopping": true,
+    "reduce_lr_on_plateau": true,
+    "model_checkpoint": true,
+    "tensorboard_logging": true
+  },
+  "artifacts": {
+    "save_model": true,
+    "save_plots": true,
+    "save_metrics": true,
+    "save_predictions": true
+  }
+}

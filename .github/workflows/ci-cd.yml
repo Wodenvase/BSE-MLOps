@@ -1,0 +1,282 @@
+name: SENSEX MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC for data pipeline
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '16'
+
+jobs:
+  # Code quality and testing
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black isort
+    
+    - name: Code formatting check
+      run: |
+        black --check --diff src/ streamlit_app/ --line-length 88
+        isort --check-only --diff src/ streamlit_app/
+    
+    - name: Lint with flake8
+      run: |
+        flake8 src/ streamlit_app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ streamlit_app/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Run tests
+      run: |
+        pytest tests/ --cov=src --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # Security scanning
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run security scan
+      uses: securecodewarrior/github-action-add-sarif@v1
+      with:
+        sarif-file: 'security-scan-results.sarif'
+    
+    - name: Check for vulnerabilities
+      run: |
+        pip install safety
+        safety check --json > safety-report.json || true
+        
+  # Build Docker images
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Build and push main image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/sensex-mlops:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/sensex-mlops:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push Airflow image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile.airflow
+        push: true
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/sensex-mlops-airflow:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/sensex-mlops-airflow:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Data pipeline execution
+  data-pipeline:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Configure DVC
+      env:
+        GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+      run: |
+        echo "$GDRIVE_CREDENTIALS_DATA" > gdrive-credentials.json
+        dvc remote modify gdrive gdrive_service_account_json_file_path gdrive-credentials.json
+    
+    - name: Fetch data
+      run: |
+        python src/data/fetch_data.py
+    
+    - name: Create feature maps
+      run: |
+        python src/data/create_feature_maps.py
+    
+    - name: Upload data to DVC
+      run: |
+        dvc add data/processed/feature_maps.npy
+        dvc add data/processed/targets.npy
+        dvc push
+    
+    - name: Commit DVC changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/processed/*.dvc .gitignore
+        git commit -m "Update data [skip ci]" || exit 0
+        git push
+
+  # Model training
+  train-model:
+    runs-on: ubuntu-latest
+    needs: data-pipeline
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Pull latest data
+      env:
+        GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+      run: |
+        echo "$GDRIVE_CREDENTIALS_DATA" > gdrive-credentials.json
+        dvc remote modify gdrive gdrive_service_account_json_file_path gdrive-credentials.json
+        dvc pull
+    
+    - name: Train model
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+        MLFLOW_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+      run: |
+        python src/models/convlstm_model.py
+    
+    - name: Upload model artifacts
+      run: |
+        dvc add models/
+        dvc push
+        git add models.dvc
+        git commit -m "Update model [skip ci]" || exit 0
+        git push
+
+  # Deploy to staging
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add staging deployment commands here
+        
+  # Deploy to production (Hugging Face Spaces)
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, train-model]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Hugging Face Hub
+      run: |
+        pip install huggingface_hub
+    
+    - name: Deploy to Hugging Face Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_USERNAME: ${{ secrets.HF_USERNAME }}
+      run: |
+        python scripts/deploy_to_hf_spaces.py
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          Automated release from CI/CD pipeline
+          - Model training completed
+          - Deployed to Hugging Face Spaces
+          - Commit: ${{ github.sha }}
+        draft: false
+        prerelease: false
+
+  # Monitoring and alerts
+  monitoring:
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always()
+    
+    steps:
+    - name: Send Slack notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#mlops-alerts'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        message: |
+          SENSEX MLOps Pipeline Status: ${{ job.status }}
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}

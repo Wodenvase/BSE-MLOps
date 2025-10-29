@@ -1,0 +1,69 @@
+{
+  "experiment_name": "sensex-convlstm-hyperparameter-tuning",
+  "mlflow_uri": "http://mlflow:5000",
+  "data_split": {
+    "train_ratio": 0.7,
+    "val_ratio": 0.2,
+    "test_ratio": 0.1
+  },
+  "optimization": {
+    "n_trials": 100,
+    "timeout": null,
+    "final_epochs": 200,
+    "final_patience": 25,
+    "sampler": "TPESampler",
+    "pruner": "MedianPruner",
+    "objective_metric": "val_f1_score",
+    "direction": "maximize"
+  },
+  "hyperparameter_space": {
+    "conv_lstm_layers": {
+      "min": 2,
+      "max": 4
+    },
+    "conv_lstm_filters": {
+      "min": 16,
+      "max": 128,
+      "step": 16
+    },
+    "kernel_size": {
+      "height": [2, 3, 4],
+      "width": [2, 3, 4]
+    },
+    "dropout": {
+      "conv_lstm_dropout": [0.1, 0.4, 0.05],
+      "conv_lstm_recurrent_dropout": [0.1, 0.4, 0.05],
+      "dense_dropout": [0.2, 0.5, 0.05]
+    },
+    "dense_layers": {
+      "min": 2,
+      "max": 4
+    },
+    "dense_units": {
+      "min": 32,
+      "max": 256,
+      "step": 16
+    },
+    "regularization": {
+      "l1_reg": [1e-5, 1e-2],
+      "l2_reg": [1e-5, 1e-2]
+    },
+    "training": {
+      "learning_rate": [1e-5, 1e-2],
+      "batch_size": [16, 32, 64, 128],
+      "epochs": [20, 100, 10]
+    }
+  },
+  "pruning": {
+    "enabled": true,
+    "n_startup_trials": 5,
+    "n_warmup_steps": 10,
+    "interval_steps": 5
+  },
+  "analysis": {
+    "save_study": true,
+    "save_trials_dataframe": true,
+    "create_visualizations": true,
+    "log_parameter_importance": true
+  }
+}

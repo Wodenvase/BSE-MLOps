@@ -1,0 +1,29 @@
+# DVC configuration for SENSEX MLOps project
+
+# Core settings
+[core]
+    remote = gdrive
+    autostage = true
+
+# Configure Google Drive as remote storage
+['remote "gdrive"']
+    url = gdrive://root
+    gdrive_acknowledge_risk = true
+    gdrive_use_service_account = false
+
+# Optional: Local backup remote for redundancy
+# ['remote "local_backup"']
+#     url = /backup/sensex-data
+
+# Cache settings for better performance
+[cache]
+    type = reflink,copy
+    protected = true
+
+# Analytics and usage tracking (disabled for privacy)
+[analytics]
+    enabled = false
+
+# Machine configuration
+[machine]
+    region = local
