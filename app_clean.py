@@ -84,14 +84,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def generate_demo_prediction():
-    """Generate realistic demo prediction with enhanced details based on actual SENSEX behavior"""
+    """Generate realistic demo prediction with enhanced details based on actual SENSEX behavior at 84k levels"""
     scenarios = [
         {
             "direction": "UP", 
             "probability": 0.73, 
             "confidence": "High", 
             "confidence_score": 0.46,
-            "predicted_change": "+1.15%",  # Realistic SENSEX daily gain
+            "predicted_change": "+1.15%",  # Realistic SENSEX daily gain at 84k levels
             "risk_level": "Moderate",
             "technical_signals": ["RSI Oversold Recovery", "MACD Bullish Crossover", "Volume Breakout"]
         },
@@ -102,7 +102,7 @@ def generate_demo_prediction():
             "confidence_score": 0.28,
             "predicted_change": "-0.85%",  # Realistic SENSEX daily decline
             "risk_level": "Moderate",
-            "technical_signals": ["Resistance at 67000", "Bearish Divergence", "FII Selling"]
+            "technical_signals": ["Resistance at 85000", "Bearish Divergence", "FII Selling"]
         },
         {
             "direction": "UP", 
@@ -111,7 +111,7 @@ def generate_demo_prediction():
             "confidence_score": 0.36,
             "predicted_change": "+1.42%",  # Strong positive day
             "risk_level": "Low",
-            "technical_signals": ["Support at 66500", "Banking Sector Strength", "Global Cues Positive"]
+            "technical_signals": ["Support at 83500", "Banking Sector Strength", "Global Cues Positive"]
         },
         {
             "direction": "DOWN", 
@@ -120,7 +120,7 @@ def generate_demo_prediction():
             "confidence_score": 0.18,
             "predicted_change": "-0.67%",  # Moderate decline
             "risk_level": "High",
-            "technical_signals": ["Profit Booking", "High Volatility Index", "Weak Auto Sector"]
+            "technical_signals": ["Profit Booking at Highs", "High Volatility Index", "Weak Auto Sector"]
         },
         {
             "direction": "UP", 
@@ -129,7 +129,7 @@ def generate_demo_prediction():
             "confidence_score": 0.42,
             "predicted_change": "+0.98%",  # Steady upward move
             "risk_level": "Low",
-            "technical_signals": ["20-Day MA Support", "IT Sector Outperformance", "DII Inflows"]
+            "technical_signals": ["20-Day MA Support at 83000", "IT Sector Outperformance", "DII Inflows"]
         },
         {
             "direction": "DOWN",
@@ -138,7 +138,16 @@ def generate_demo_prediction():
             "confidence_score": 0.24,
             "predicted_change": "-1.23%",  # Significant decline
             "risk_level": "High",
-            "technical_signals": ["Break Below 66000", "Energy Sector Weakness", "US Market Concerns"]
+            "technical_signals": ["Break Below 84000", "Energy Sector Weakness", "Global Market Concerns"]
+        },
+        {
+            "direction": "UP",
+            "probability": 0.69,
+            "confidence": "High",
+            "confidence_score": 0.38,
+            "predicted_change": "+1.67%",  # Strong rally day
+            "risk_level": "Low",
+            "technical_signals": ["Breakout Above 84500", "Pharma Sector Rally", "Positive Earnings"]
         }
     ]
     st.session_state.prediction_count += 1
@@ -148,8 +157,8 @@ def generate_market_data():
     """Generate realistic SENSEX market data based on current levels"""
     # Generate last 30 days of SENSEX data
     dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-    # Current SENSEX levels around 66,000-67,000
-    base_price = 66500
+    # Current SENSEX levels around 84,000 (October 2025)
+    base_price = 84000
     
     prices = []
     current_price = base_price
@@ -158,18 +167,18 @@ def generate_market_data():
         # More realistic daily volatility for SENSEX (0.5% to 2%)
         change = np.random.normal(0.0005, 0.015)  # Slight positive bias with realistic volatility
         current_price *= (1 + change)
-        # Keep prices in realistic range
-        current_price = max(64000, min(68000, current_price))
+        # Keep prices in realistic range for current levels
+        current_price = max(82000, min(86000, current_price))
         prices.append(current_price)
     
     # Generate realistic volume data for SENSEX (in crores)
     volumes = []
     for i in range(30):
-        # SENSEX volume typically 300-800 crores
-        base_volume = 50000000000  # 500 crores in actual numbers
+        # SENSEX volume typically 400-900 crores at current levels
+        base_volume = 60000000000  # 600 crores in actual numbers
         volume_change = np.random.normal(0, 0.3)
         volume = int(base_volume * (1 + volume_change))
-        volume = max(20000000000, min(80000000000, volume))
+        volume = max(30000000000, min(90000000000, volume))
         volumes.append(volume)
     
     df = pd.DataFrame({
@@ -229,18 +238,18 @@ def create_sensex_trend_chart():
     """Create SENSEX trend chart with moving averages based on realistic data"""
     # Generate extended data for trend analysis
     dates = pd.date_range(end=datetime.now(), periods=90, freq='D')
-    # Start from realistic historical SENSEX level (3 months ago)
-    base_price = 65200
+    # Start from realistic historical SENSEX level (3 months ago) - gradual rise to 84k
+    base_price = 79500
     
     prices = []
     current_price = base_price
     
     for i in range(90):
-        # Realistic SENSEX daily movement (typically 0.1% to 1.5%)
-        change = np.random.normal(0.0008, 0.012)  # Slight upward trend over 3 months
+        # Realistic SENSEX daily movement with upward trend to reach 84k
+        change = np.random.normal(0.0015, 0.012)  # Slight upward trend over 3 months
         current_price *= (1 + change)
-        # Keep within realistic bounds
-        current_price = max(62000, min(68500, current_price))
+        # Keep within realistic bounds for 84k levels
+        current_price = max(78000, min(86000, current_price))
         prices.append(current_price)
     
     df = pd.DataFrame({
@@ -291,7 +300,7 @@ def create_sensex_trend_chart():
         height=450,
         legend=dict(x=0, y=1),
         yaxis=dict(
-            range=[62000, 68500]  # Set realistic Y-axis range
+            range=[78000, 86000]  # Set realistic Y-axis range for 84k levels
         )
     )
     
@@ -299,9 +308,9 @@ def create_sensex_trend_chart():
 
 def get_market_summary():
     """Generate realistic market summary data based on current SENSEX levels"""
-    # Current SENSEX level (as of late October 2024)
-    base_price = 66750.24
-    daily_change = random.uniform(-400, 400)  # Realistic daily change range
+    # Current SENSEX level (as of October 2025) - around 84,000
+    base_price = 84125.67
+    daily_change = random.uniform(-600, 600)  # Realistic daily change range for 84k levels
     current_price = base_price + daily_change
     change_percent = (daily_change / base_price) * 100
     
@@ -310,7 +319,7 @@ def get_market_summary():
             'current_price': current_price,
             'change': daily_change,
             'change_percent': change_percent,
-            'volume': random.randint(40000000000, 70000000000)  # Volume in actual numbers (400-700 crores)
+            'volume': random.randint(50000000000, 90000000000)  # Volume in actual numbers (500-900 crores)
         },
         'market_breadth': {
             'advancing': random.randint(15, 23),  # Out of 30 SENSEX stocks
